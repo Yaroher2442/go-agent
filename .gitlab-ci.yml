@@ -1,0 +1,33 @@
+default:
+  artifacts:
+    when: on_success
+    expire_in: 30 days
+    paths:
+      - dist
+
+.install_go:
+  script:
+    - apt update
+    - apt install wget gcc git -y
+    - wget -P /tmp "https://dl.google.com/go/go1.19.linux-amd64.tar.gz"
+    - tar -C /usr/local -xzf "/tmp/go1.19.linux-amd64.tar.gz"
+    - rm "/tmp/go1.19.linux-amd64.tar.gz"
+    - export PATH=$PATH:/usr/local/go/bin
+    - go version
+
+.build_go:
+  script:
+    - mkdir -p dist
+    - sed -i -E "s/(const PcaVersion = \"[0-9]+.[0-9]+.[0-9]+\")/const PcaVersion = \"$CI_COMMIT_TAG\"/g" ./lib/settings.go
+    - go build -o dist ./...
+
+
+compile:
+  stage: build
+  image: ubuntu:20.04
+  only:
+    - tags
+  before_script:
+    - !reference [ .install_go,script ]
+  script:
+    - !reference [ .build_go,script ]
